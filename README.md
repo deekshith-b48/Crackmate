@@ -216,6 +216,19 @@ Prefer environment variables? Copy `.env.example` to `.env` and fill the same na
 > [!WARNING]
 > Treat keys like passwords. Never paste them into chats, issues or commits. If one leaks, delete it in the provider's dashboard and create a new one.
 
+## 🐳 Run with Docker
+
+Prefer not to install Python and Node? Use the ready-made image from GitHub Packages:
+
+```sh
+docker run --rm -p 127.0.0.1:8000:8000 \
+  -e GROQ_API_KEY="paste-your-key" \
+  -v crackmate-data:/app/.crackmate \
+  ghcr.io/deekshith-b48/crackmate:latest
+```
+
+Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Your data is kept in the `crackmate-data` volume. Add `-e ALT_LLM_API_KEY=... -e ALT_LLM_BASE_URL=... -e ALT_LLM_MODEL=...` for a backup provider. Keep `127.0.0.1:` in the port flag so only your own computer can reach the app.
+
 ## 🧰 Terminal and Claude (MCP)
 
 ```sh

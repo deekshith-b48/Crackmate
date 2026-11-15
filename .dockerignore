@@ -1,0 +1,14 @@
+# Never bake private data or secrets into an image
+.env
+.env.*
+.streamlit/secrets*.toml
+.crackmate/
+*.sqlite3*
+*.pdf
+*.docx
+.git/
+.venv/
+**/__pycache__/
+web/node_modules/
+web/out/
+web/.next/
