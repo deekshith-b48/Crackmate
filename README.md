@@ -22,22 +22,52 @@
 
 Also included: a command line (`./crackmate_cli`) and an MCP server so you can study from Claude or any MCP host.
 
-## Quick start
+## Step-by-step: run CrackMate on your computer
 
-```sh
-# 1. Python 3.13 environment
-python3.13 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt -r requirements-api.txt
+Everything runs locally and is free. You only need a free Groq API key.
 
-# 2. Add your free Groq key (https://console.groq.com) to a file that is never committed
-mkdir -p .streamlit
-printf 'GROQ_API_KEY = "your-key-here"\n' > .streamlit/secrets.toml
+1. **Install the tools.** You need Python 3.13, Node.js 20 or newer (with npm), and git. Check with `python3.13 --version`, `node --version` and `git --version`.
+2. **Download the project.**
+   ```sh
+   git clone https://github.com/deekshith-b48/Crackmate-.git
+   cd Crackmate-
+   ```
+3. **Create the Python environment and install requirements.**
+   ```sh
+   python3.13 -m venv .venv
+   .venv/bin/python -m pip install -r requirements.txt -r requirements-api.txt
+   ```
+4. **Get a free Groq key.** Sign in at [console.groq.com](https://console.groq.com), open API Keys, and create one. Do not share it or paste it into chats or issues.
+5. **Save the key in a private file** that git ignores (it is never uploaded):
+   ```sh
+   mkdir -p .streamlit
+   printf 'GROQ_API_KEY = "paste-your-key-here"\n' > .streamlit/secrets.toml
+   ```
+6. **Optional: avoid rate limits.** Groq's free tier is limited per minute and per day. Add these lines to `.streamlit/secrets.toml`:
+   ```toml
+   GROQ_FALLBACK_MODEL = "openai/gpt-oss-120b"
+   # A second free provider, used automatically when Groq is busy (any OpenAI-compatible endpoint, for example Google AI Studio):
+   ALT_LLM_API_KEY = "your-second-key"
+   ALT_LLM_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+   ALT_LLM_MODEL = "gemini-3.5-flash"
+   ```
+   Model names change over time; check your provider's model list if you see a "model unavailable" error. Voice transcription always uses Groq.
+7. **Start CrackMate.**
+   ```sh
+   ./run.sh
+   ```
+   The first run builds the web interface (a few minutes, about 700 MB in `web/node_modules`). Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Leave the terminal open while you use the app; press Ctrl+C to stop it.
+8. **Create your profile.** Open **Setup**, upload your resume (PDF or DOCX) or paste the text, and review the extracted text. Nothing is sent to a model until you press Extract.
+9. **Add your projects.** On **Learn → Projects**, attach a public GitHub repository URL for each project so CrackMate can read the real code (stack, what you wrote, hotspots).
+10. **Learn, then practise.** Generate a project lesson or skill lesson, check your resume claims on **Claim Checker**, then use **Practice** for question cards, feedback and the voice interview.
+11. **Plan and track.** Build a time-boxed plan under **Plan**, and watch readiness and risk under **Track** and **Analyse**.
+12. **Optional: use the terminal or Claude.** `./crackmate_cli next` shows what to study now; `./crackmate_cli mcp` starts an MCP server for Claude (see the MCP section below).
 
-# 3. Run (builds the web app on first run; needs Node 20+ and npm)
-./run.sh        # then open http://127.0.0.1:8000
-```
+**Update later:** run `git pull`, then `./run.sh` again. **Something wrong?** See Troubleshooting below.
 
-**Rate limits?** Groq's free tier is limited per minute and per day. In `.streamlit/secrets.toml` you can add `GROQ_FALLBACK_MODEL = "openai/gpt-oss-120b"` (a second quota on the same key) and an optional second provider, used automatically when Groq is busy: `ALT_LLM_API_KEY`, `ALT_LLM_BASE_URL` and `ALT_LLM_MODEL` for any OpenAI-compatible endpoint (for example Google AI Studio). Voice transcription always uses Groq Whisper.
+### Your private data stays private
+
+Your resume, profile, lessons and database are stored only in `.crackmate/` on your machine, and your keys only in `.streamlit/secrets.toml`. Both are listed in `.gitignore`, together with `.env` files, resumes (`*.pdf`, `*.docx`, `resume*`) and databases, so they cannot be committed by mistake. Before you push your own fork, run `git status` and check that none of these appear. Only the resume text you approve is sent to your chosen model provider, and only when you press the button that does so.
 
 ## Project layout
 

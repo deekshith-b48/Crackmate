@@ -6,3 +6,20 @@ __pycache__/
 .crackmate/
 *.sqlite3*
 .DS_Store
+
+# Private data and secrets: never commit these
+.env.*
+!.env.example
+.streamlit/secrets*.toml
+*.pem
+*.key
+.crackmate/
+# resumes and anything you upload to the app
+*.pdf
+*.docx
+uploads/
+# build output and tooling
+node_modules/
+web/out/
+web/.next/
+.pytest_cache/
