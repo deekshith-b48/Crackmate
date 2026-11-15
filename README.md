@@ -9,7 +9,8 @@
 Turn your resume and real project code into lessons, mock interviews and a study plan.</p>
 
 <p align="center">
-  <a href="#-quick-start-pick-one-way"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-9333ea?style=for-the-badge"></a>
+  <a href="#way-1"><img alt="Manual setup" src="https://img.shields.io/badge/Manual%20setup-9333ea?style=for-the-badge"></a>
+  <a href="#way-2"><img alt="Claude, Codex or MCP" src="https://img.shields.io/badge/Claude%20%7C%20Codex%20%7C%20MCP-D97757?style=for-the-badge"></a>
   <a href="#-api-keys-for-way-1-which-one-should-i-use"><img alt="API keys" src="https://img.shields.io/badge/API%20keys-1b0a2e?style=for-the-badge"></a>
   <a href="#-features"><img alt="Features" src="https://img.shields.io/badge/Features-1b0a2e?style=for-the-badge"></a>
   <a href="docs/reference.md"><img alt="Docs" src="https://img.shields.io/badge/Docs-1b0a2e?style=for-the-badge"></a>
@@ -77,51 +78,54 @@ You prepare, practise, see your weak spots, then study exactly those. Repeat unt
 
 </details>
 
-## ⚡ Quick start: pick one way
+<a id="quick-start"></a>
 
-Both ways give you the same app, the same website and the same data. Pick the one that fits what you already have.
+## ⚡ Quick start: pick your path
 
-| | 🛠️ **Way 1: Manual** | 🔌 **Way 2: Claude or Codex** |
+```mermaid
+flowchart TD
+    A{{"Do you use Claude, Codex<br>or another MCP tool?"}}
+    A -- "No, or I just want the website" --> B["🛠️ Way 1: Manual"]
+    A -- "Yes" --> C["🔌 Way 2: Connect your tool"]
+    B --> D["Free Groq key"] --> F
+    C --> E["One config line"] --> G["Chat with your assistant"] --> F
+    F(["🌐 CrackMate website<br>127.0.0.1:8000"])
+```
+
+<p align="center">
+  <a href="#way-1"><img alt="Way 1: Manual setup" src="https://img.shields.io/badge/Way%201-Manual%20setup-9333ea?style=for-the-badge"></a>
+  <a href="#way-2"><img alt="Way 2: Claude, Codex or MCP" src="https://img.shields.io/badge/Way%202-Claude%20%7C%20Codex%20%7C%20MCP-1b0a2e?style=for-the-badge"></a>
+</p>
+
+| | 🛠️ **Way 1: Manual** | 🔌 **Way 2: Claude, Codex or any MCP tool** |
 |---|---|---|
 | **You need** | A free Groq key | A Claude or Codex subscription you already pay for |
-| **Who writes the lessons** | A free AI service (Groq, with an optional Gemini backup) | Your own AI assistant |
+| **Who writes lessons** | A free AI service (Groq, optional Gemini backup) | Your own AI assistant |
 | **API key** | Yes, free | None |
 | **Where you work** | The CrackMate website | Chat with your assistant, plus the website |
-| **Best for** | Anyone, no paid tools | People who use Claude Code, Claude Desktop or Codex daily |
+| **Setup time** | About 5 minutes | About 3 minutes |
 
-You can do both: they share one database, so set up Way 1 first and add Way 2 later.
+> [!NOTE]
+> Both ways give you the same app and the same data. Start with Way 1 and add Way 2 later, or the other way round.
 
-### 🛠️ Way 1: Manual (free, no Claude or Codex needed)
+<a id="way-1"></a>
+
+### 🛠️ Way 1: Manual setup (free, no Claude or Codex needed)
 
 **You need:** Python 3.13, Node.js 20+, git, and a free [Groq key](https://console.groq.com/keys).
 
-**1. Download**
-```sh
-git clone https://github.com/deekshith-b48/Crackmate.git
-cd Crackmate
-```
+| Step | Do this |
+|:---:|---|
+| **1** | **Download**<br>`git clone https://github.com/deekshith-b48/Crackmate.git`<br>`cd Crackmate` |
+| **2** | **Install**<br>`python3.13 -m venv .venv`<br>`.venv/bin/python -m pip install -r requirements.txt -r requirements-api.txt` |
+| **3** | **Add your key** (kept in a file git ignores, never uploaded)<br>`mkdir -p .streamlit`<br>`printf 'GROQ_API_KEY = "paste-your-key"\n' > .streamlit/secrets.toml` |
+| **4** | **Run**<br>`./run.sh` (the first run builds the interface, a few minutes) |
+| **5** | **Open** [http://127.0.0.1:8000](http://127.0.0.1:8000). Press `Ctrl+C` in the terminal to stop. |
 
-**2. Install**
-```sh
-python3.13 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt -r requirements-api.txt
-```
-
-**3. Add your key** (saved in a file git ignores, so it is never uploaded)
-```sh
-mkdir -p .streamlit
-printf 'GROQ_API_KEY = "paste-your-key-here"\n' > .streamlit/secrets.toml
-```
-
-**4. Run**
-```sh
-./run.sh
-```
-
-**5. Open** [http://127.0.0.1:8000](http://127.0.0.1:8000). The first run builds the interface (a few minutes). Press `Ctrl+C` to stop.
+✅ **You are done when** the sidebar shows a green dot and **Groq connected**.
 
 > [!TIP]
-> New here? Go to **Setup**, add your resume, then **Learn → Projects**, attach a public GitHub repo, and generate your first lesson.
+> Hit rate limits? Add a free backup AI. See [API keys for Way 1](#-api-keys-for-way-1-which-one-should-i-use).
 
 <details>
 <summary><b>Step-by-step: your first session</b></summary>
@@ -138,9 +142,23 @@ Update later with `git pull`, then `./run.sh`.
 
 </details>
 
-### 🔌 Way 2: With Claude or Codex (premium tools, no API key)
+<a id="way-2"></a>
 
-CrackMate runs as an **MCP server**. Your assistant then writes the lessons and scores your answers using **your own subscription**, and CrackMate stores everything locally. Works on macOS and Linux (on Windows, use WSL).
+### 🔌 Way 2: Connect Claude, Codex or any MCP tool (no API key)
+
+CrackMate runs as an **MCP server** (a local "connector"). Your assistant writes the lessons and scores your answers using **your own subscription**, and CrackMate stores everything on your computer. Works on macOS and Linux (on Windows, use WSL).
+
+```mermaid
+sequenceDiagram
+    participant You
+    participant AI as Your assistant (Claude, Codex...)
+    participant CM as CrackMate (local)
+    You->>AI: "Prepare me for my interview"
+    AI->>CM: prepare_lesson / prepare_grading
+    CM-->>AI: instructions + your context
+    AI->>CM: save_lesson / save_grading
+    CM-->>You: progress on the website
+```
 
 **Step 1. Get the code and let it set itself up** (once):
 
@@ -148,12 +166,22 @@ CrackMate runs as an **MCP server**. Your assistant then writes the lessons and 
 git clone https://github.com/deekshith-b48/Crackmate.git
 cd Crackmate
 ./scripts/mcp.sh      # first run installs what it needs (about a minute). Press Ctrl+C when it waits.
+pwd                   # copy this path: you need it below as /full/path/to/Crackmate
 ```
 
-**Step 2. Connect your assistant.** Use the full path to `scripts/mcp.sh` (run `pwd` inside the folder to see it).
+**Step 2. Connect your tool.** Pick yours:
 
-<details open>
-<summary><b>Claude Code</b></summary>
+<p align="center">
+  <a href="#claude-code"><img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-D97757?style=for-the-badge&logo=anthropic&logoColor=white"></a>
+  <a href="#claude-desktop"><img alt="Claude Desktop" src="https://img.shields.io/badge/Claude%20Desktop-D97757?style=for-the-badge&logo=anthropic&logoColor=white"></a>
+  <a href="#codex"><img alt="Codex" src="https://img.shields.io/badge/Codex-1b0a2e?style=for-the-badge&logo=openai&logoColor=white"></a>
+  <a href="#other-mcp"><img alt="Other MCP tools" src="https://img.shields.io/badge/Other%20MCP%20tools-9333ea?style=for-the-badge"></a>
+  <a href="#mcp-help"><img alt="Not working?" src="https://img.shields.io/badge/Not%20working%3F-6b7280?style=for-the-badge"></a>
+</p>
+
+<a id="claude-code"></a>
+
+#### Claude Code
 
 ```sh
 claude mcp add crackmate -- /full/path/to/Crackmate/scripts/mcp.sh
@@ -166,12 +194,11 @@ Or install it as a plugin (adds a coaching skill too):
 /plugin install crackmate@crackmate
 ```
 
-Check with `/mcp`: `crackmate` should show as connected.
+✅ Check with `/mcp`: `crackmate` shows as connected.
 
-</details>
+<a id="claude-desktop"></a>
 
-<details>
-<summary><b>Claude Desktop</b></summary>
+#### Claude Desktop
 
 Open the config file, add the `mcpServers` block, then quit and reopen Claude Desktop.
 
@@ -187,10 +214,11 @@ Open the config file, add the `mcpServers` block, then quit and reopen Claude De
 
 If the file already has other settings, keep them and just add `mcpServers`.
 
-</details>
+✅ Check: CrackMate appears in the tools list of a new chat.
 
-<details>
-<summary><b>Codex</b></summary>
+<a id="codex"></a>
+
+#### Codex
 
 ```sh
 codex mcp add crackmate -- /full/path/to/Crackmate/scripts/mcp.sh
@@ -212,9 +240,21 @@ Write lessons and scores yourself: call prepare_lesson / prepare_grading, follow
 Never invent facts about the candidate's code. Ask one question at a time.
 ```
 
-Codex support follows the same MCP standard, but we have not tested it in the Codex app yet.
+> [!NOTE]
+> Codex uses the same MCP standard, but we have not tested it in the Codex app yet.
 
-</details>
+<a id="other-mcp"></a>
+
+#### Other MCP tools and connectors
+
+Any app that can run a **local (stdio) MCP server** works. Give it this command and no arguments:
+
+```text
+/full/path/to/Crackmate/scripts/mcp.sh
+```
+
+> [!NOTE]
+> CrackMate is a local connector. Web-only connectors that need a public URL (for example Claude.ai custom connectors) are not supported, because your data stays on your computer.
 
 **Step 3. Start talking.** For example:
 
@@ -222,13 +262,15 @@ Codex support follows the same MCP standard, but we have not tested it in the Co
 
 Your assistant creates your profile, reads your public GitHub repos, tells you what to study, teaches it and quizzes you.
 
-**Step 4. See it on the website** (optional but recommended). Run `./run.sh` from the same folder and open [http://127.0.0.1:8000](http://127.0.0.1:8000). Profiles, lessons, scores and risks appear on every page, written by "your AI assistant".
+**Step 4. See it on the website** (optional but recommended). Run `./run.sh` from the same folder and open [http://127.0.0.1:8000](http://127.0.0.1:8000). Profiles, lessons, scores and risks appear on every page, labelled "written by your AI assistant". With no Groq key the sidebar says **Using your AI assistant (MCP)**.
+
+<a id="mcp-help"></a>
 
 <details>
-<summary><b>Not working?</b></summary>
+<summary><b>🛟 Not working?</b></summary>
 
-- **`crackmate` shows "connection closed" or does not appear:** run `./scripts/mcp.sh` in a terminal first and wait for the install to finish. Check the path in your config is the full path and has no typos. Restart the assistant.
-- **Folder name has a space:** that is fine in the JSON and TOML above; just keep the path exactly as it is.
+- **`crackmate` shows "connection closed" or does not appear:** run `./scripts/mcp.sh` in a terminal first and wait for the install to finish. Check the path in your config is the full path with no typos. Restart the tool.
+- **Folder name has a space:** that is fine in the JSON and TOML above; keep the path exactly as it is.
 - **Website shows no profile:** the assistant and the website must use the same folder, so run `./run.sh` from the folder in your MCP config.
 - **Quality:** a stronger assistant model writes better lessons and scores.
 
