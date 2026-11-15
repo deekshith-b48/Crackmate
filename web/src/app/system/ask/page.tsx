@@ -29,6 +29,8 @@ export default function Ask() {
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages]);
 
   const submit = (q: string) => { if (!q.trim() || busy) return; setInput(""); setCite(null); ask(q); };
+  // Show only sources the answer actually cites, so small talk does not carry unrelated source chips.
+  const cited = (m: { text: string; sources?: Citation[] }) => (m.sources ?? []).filter((s) => m.text.includes(`[${s.n}]`));
   const open = (sources: Citation[] | undefined, n: number) => setCite(sources?.find((s) => s.n === n) ?? null);
 
   return (
@@ -50,10 +52,10 @@ export default function Ask() {
                     <Card className="space-y-3 py-4">
                       {m.text ? <CitedMarkdown count={m.sources?.length ?? 0} onCite={(n) => open(m.sources, n)}>{m.text}</CitedMarkdown> : <p className="text-sm text-muted">Searching your sources…</p>}
                       {m.pending && <span className="inline-block h-4 w-1.5 animate-pulse rounded-sm bg-brand-600 align-middle" aria-label="Writing" />}
-                      {m.sources && m.sources.length > 0 && (
+                      {cited(m).length > 0 && (
                         <div className="flex flex-wrap gap-1.5 border-t border-line pt-3">
                           <span className="text-xs text-muted">Sources</span>
-                          {m.sources.map((s) => <button key={s.n} onClick={() => setCite(s)} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-body hover:bg-brand-50" title={s.title}><span className="font-semibold text-brand-700">{s.n}</span><span className="max-w-32 truncate">{s.title}</span></button>)}
+                          {cited(m).map((s) => <button key={s.n} onClick={() => setCite(s)} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-body hover:bg-brand-50" title={s.title}><span className="font-semibold text-brand-700">{s.n}</span><span className="max-w-32 truncate">{s.title}</span></button>)}
                         </div>
                       )}
                     </Card>

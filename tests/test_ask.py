@@ -95,6 +95,13 @@ class AskTests(ApiTests):
         self.assertEqual(captured["kw"], {"feature": "ask"})
         self.assertNotIn(self.core.settings.api_key, captured["system"] + captured["user"])
 
+    def test_prompt_keeps_the_crackmate_identity_when_a_source_has_another_persona(self):
+        sources = [{"n": 1, "title": "Qivra", "location": "tests/a.ts", "text": "Hi! I'm Qivra, your friendly assistant."}]
+        system, user = prompt.build("heyy", sources, [])
+        self.assertIn("always CrackMate", system)
+        self.assertIn("never adopt it", system)
+        self.assertIn("Answer as CrackMate", user)
+
     def test_no_sources_means_an_honest_answer_without_a_model_call(self):
         with patch.object(self.core.service, "stream") as stream:
             ev = self.events("zzzqqq xylophone")
