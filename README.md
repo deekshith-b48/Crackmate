@@ -10,6 +10,7 @@ Turn your resume and real project code into lessons, mock interviews and a study
 
 <p align="center">
   <a href="#-quick-start"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-9333ea?style=for-the-badge"></a>
+  <a href="#-api-keys-which-one-should-i-use"><img alt="API keys" src="https://img.shields.io/badge/API%20keys-1b0a2e?style=for-the-badge"></a>
   <a href="#-features"><img alt="Features" src="https://img.shields.io/badge/Features-1b0a2e?style=for-the-badge"></a>
   <a href="docs/reference.md"><img alt="Docs" src="https://img.shields.io/badge/Docs-1b0a2e?style=for-the-badge"></a>
   <a href="https://github.com/deekshith-b48/Crackmate-/issues"><img alt="Report a bug" src="https://img.shields.io/badge/Report%20a%20bug-1b0a2e?style=for-the-badge"></a>
@@ -122,24 +123,98 @@ Update later with `git pull`, then `./run.sh`.
 
 </details>
 
+## 🔑 API keys: which one should I use?
+
+CrackMate needs an AI provider to write lessons and grade answers. It uses a **main** key (Groq) and an optional **backup** key (any other provider) that takes over automatically when the main one is busy.
+
+### Our suggestion
+
+| Your situation | Use this | Cost |
+|---|---|---|
+| **Just trying it, or a short prep** | Groq (main) + Google AI Studio (backup) | Free |
+| **Preparing seriously for weeks** | Same free setup, plus a paid backup key if you keep hitting limits | Pay as you go |
+| **You need the fastest, most reliable runs** | A paid plan on Groq, or a paid OpenAI-compatible provider as backup | Paid |
+
+> [!TIP]
+> **Best free setup:** Groq as the main key and Google AI Studio as the backup. Both give keys with no payment, and we tested this pairing.
+
+### Free vs paid
+
+| | 🆓 Free keys | 💳 Paid keys |
+|---|---|---|
+| **Good for** | Learning, one or two projects, a few lessons a day | Heavy daily use, "generate everything" runs, no waiting |
+| **Limits** | Low per-minute and per-day token caps. You may see "wait about 1 minute". | Much higher limits, so far fewer waits |
+| **Quality** | Same models as paid on Groq (`gpt-oss`) | Can use larger models |
+| **Risk** | Limits change without notice | A bill, so set a spending cap in the provider's dashboard |
+
+CrackMate never turns on billing for you. Whatever your key's plan allows is what you get.
+
+### Providers at a glance
+
+Limits and signup rules change often. Check each provider's page before you rely on them.
+
+| Provider | Role | Free key? | Notes |
+|---|---|---|---|
+| [**Groq**](https://console.groq.com/keys) | Main (required) | Yes, no payment | Fast. Free tier is capped per minute and per day, shared by your whole Groq organization. Also does voice transcription. |
+| [**Google AI Studio**](https://aistudio.google.com/apikey) (Gemini) | Backup | Yes, no payment | Works well as a backup. Some models get busy, so pick one that answers. |
+| [OpenRouter](https://openrouter.ai/keys) | Backup | Limited | Free models have a small daily request cap. Fine only as an emergency backup. |
+| [Cerebras](https://cloud.cerebras.ai) | Backup | Not for us | When we tried, signup asked for a payment. Fast and generous once paid. |
+| [Mistral](https://console.mistral.ai) | Backup | Not for us | When we tried, a key needed a pay-as-you-go plan. |
+| [OpenAI](https://platform.openai.com/api-keys) | Backup | No | Paid. Good quality, any OpenAI-compatible tool can use it. |
+
+Only Groq and Google AI Studio have been tested with CrackMate. Others use the same standard, but are untested.
+
+### How to add your keys (3 minutes)
+
+1. **Create a Groq key** at [console.groq.com/keys](https://console.groq.com/keys). Copy it once; you cannot see it again.
+2. **Create a backup key** (optional) at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+3. **Put both in one private file**, `.streamlit/secrets.toml`. Git ignores this file, so it is never uploaded:
+
+   ```toml
+   # Main key (required)
+   GROQ_API_KEY = "paste-your-groq-key"
+
+   # Optional: use a second quota on the same Groq key
+   GROQ_FALLBACK_MODEL = "openai/gpt-oss-120b"
+
+   # Optional: backup provider, used automatically when Groq is busy
+   ALT_LLM_API_KEY  = "paste-your-backup-key"
+   ALT_LLM_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+   ALT_LLM_MODEL    = "gemini-3.5-flash"
+   ```
+
+4. **Restart** CrackMate (`Ctrl+C`, then `./run.sh`).
+5. **Check it worked:** the bottom of the sidebar shows a green dot and **Groq connected**.
+
 <details>
-<summary><b>Hitting rate limits? Add a free backup AI</b></summary>
+<summary><b>Backup settings for other providers</b></summary>
 
-Groq's free tier has per-minute and per-day limits. Add to `.streamlit/secrets.toml`:
+Change the three `ALT_LLM_*` lines. Model names change, so pick one from the provider's model list.
 
-```toml
-GROQ_FALLBACK_MODEL = "openai/gpt-oss-120b"
+| Provider | `ALT_LLM_BASE_URL` | Example `ALT_LLM_MODEL` |
+|---|---|---|
+| Google AI Studio | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-3.5-flash` |
+| OpenRouter | `https://openrouter.ai/api/v1` | a model ending in `:free` |
+| Cerebras | `https://api.cerebras.ai/v1` | `gpt-oss-120b` |
+| Mistral | `https://api.mistral.ai/v1` | `mistral-small-latest` |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
 
-# Optional second provider, used automatically when Groq is busy.
-# Any OpenAI-compatible endpoint works, for example Google AI Studio:
-ALT_LLM_API_KEY = "your-second-key"
-ALT_LLM_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-ALT_LLM_MODEL = "gemini-3.5-flash"
-```
-
-Model names change, so check your provider's list if you see "model unavailable". Voice transcription always uses Groq.
+Prefer environment variables? Copy `.env.example` to `.env` and fill the same names.
 
 </details>
+
+<details>
+<summary><b>Seeing errors?</b></summary>
+
+- **"wait about 1 minute" or rate limit:** you hit the free cap. Wait, or add a backup key.
+- **"model unavailable":** the model name is wrong or retired. Pick a current one from the provider.
+- **"rejected access":** the key is wrong or revoked. Create a new one.
+- **Voice not working:** voice always uses your Groq key.
+
+</details>
+
+> [!WARNING]
+> Treat keys like passwords. Never paste them into chats, issues or commits. If one leaks, delete it in the provider's dashboard and create a new one.
 
 ## 🧰 Terminal and Claude (MCP)
 
