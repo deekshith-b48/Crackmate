@@ -1,0 +1,11 @@
+{
+  "name": "crackmate",
+  "owner": { "name": "deekshith-b48" },
+  "plugins": [
+    {
+      "name": "crackmate",
+      "source": "./",
+      "description": "Free, private interview coach that uses your own AI assistant, with no API key."
+    }
+  ]
+}

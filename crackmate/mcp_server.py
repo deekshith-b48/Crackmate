@@ -2,7 +2,8 @@
 
 Run:  ./crackmate_cli mcp   (stdio). Add it to a host with the command  <project folder>/crackmate_cli mcp
 Nothing here helps during a real interview: it is for preparation and mock practice only.
-All tools read your local data. Only grade_answer calls a model (your Groq key) and saves a practice attempt.
+Tools read your local data. No model key is needed: prepare_* tools hand the writing and scoring to your assistant and save_* tools store the result.
+grade_answer is an optional shortcut that uses a Groq key instead.
 """
 import functools
 import sys
@@ -15,8 +16,10 @@ from api.errors import describe
 from crackmate import tools
 
 INSTRUCTIONS = ("CrackMate helps a candidate prepare for interviews from their resume and project code. Use get_study_next to pick what to study, "
-                "quiz_me then grade_answer to practise, and search_knowledge for cited sources. For preparation and mock practice only: "
-                "never use it to help someone during a live interview.")
+                "quiz_me to practise, and search_knowledge for cited sources. You (the assistant) are the model, so no API key is needed: "
+                "to create a lesson call prepare_lesson, write the JSON it asks for (follow `instructions` and `schema` exactly, return only JSON), then call save_lesson. "
+                "To score an answer call prepare_grading, score it honestly against the rubric, then call save_grading. Never invent sources or claims about the candidate's code. "
+                "For preparation and mock practice only: never use it to help someone during a live interview.")
 
 
 def build_server(core_factory=build_core):
@@ -35,10 +38,30 @@ def build_server(core_factory=build_core):
                 raise ToolError(describe(exc)[1]) from None
         return server.tool()(safe)
 
-    def ctx():
+    def core_only():
         if "core" not in cache:
             cache["core"] = core_factory()
-        return cache["core"], tools.resolve_profile(cache["core"])
+        return cache["core"]
+
+    def ctx():
+        core = core_only()
+        return core, tools.resolve_profile(core)
+
+    @tool
+    def create_profile(resume_text: str) -> dict:
+        """Start a profile from resume text (no API key needed). Returns instructions and a schema: extract the profile yourself, then call save_profile."""
+        return tools.prepare_profile(core_only(), resume_text)
+
+    @tool
+    def save_profile(task_id: str, profile: dict, role: str = "", company: str = "") -> dict:
+        """Save the profile you extracted for a create_profile task. Optionally set the target role and company."""
+        return tools.save_profile(core_only(), task_id, profile, role, company)
+
+    @tool
+    def attach_repo(url: str, project: str = "") -> dict:
+        """Read a public GitHub repository for a project (stack, ownership, hotspots; no model used). project is optional when the repo name matches or there is one project."""
+        c, r = ctx(); repo = tools.attach(c, r, url, project, lambda _: None)
+        return {"url": url, "lines": repo["facts"]["loc"], "stack": [t["name"] for t in repo["facts"]["technologies"][:8]]}
 
     @tool
     def get_profile() -> dict:
@@ -64,6 +87,26 @@ def build_server(core_factory=build_core):
     def grade_answer(question_id: str, answer: str) -> dict:
         """Score a spoken-style answer to a question from quiz_me. Uses the model, and saves the attempt toward readiness."""
         c, r = ctx(); return tools.grade_answer(c, r, question_id, answer)
+
+    @tool
+    def prepare_lesson(kind: str = "skill", topic: str = "", level: str = "Basics", project: str = "", section: str = "") -> dict:
+        """Start a lesson for YOU to write (no API key needed). kind: skill (give topic, level), project (project, section), claims, pitch or diagram (project). Returns the lesson if it already exists, else instructions, a JSON schema and context. Write the JSON, then call save_lesson."""
+        c, r = ctx(); return tools.prepare_lesson(c, r, kind, topic, level, project, section)
+
+    @tool
+    def save_lesson(task_id: str, lesson: dict) -> dict:
+        """Save the lesson you wrote for a prepare_lesson task. It is checked against the schema and labelled as written by your assistant."""
+        c, r = ctx(); return tools.save_lesson(c, r, task_id, lesson)
+
+    @tool
+    def prepare_grading(question_id: str, answer: str) -> dict:
+        """Start scoring a candidate's answer to a quiz_me question yourself (no API key needed). Returns the rubric, schema and context. Score honestly, then call save_grading."""
+        c, r = ctx(); return tools.prepare_grading(c, r, question_id, answer)
+
+    @tool
+    def save_grading(task_id: str, feedback: dict) -> dict:
+        """Save your scoring for a prepare_grading task. It counts toward readiness like any practice attempt."""
+        c, r = ctx(); return tools.save_grading(c, r, task_id, feedback)
 
     @tool
     def get_weak_spots(n: int = 8) -> list[dict]:

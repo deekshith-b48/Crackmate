@@ -164,6 +164,9 @@ def decisions_request(profile, project, found):
     }, DecisionSet, validate)
 
 
+HOST = "host"  # items written by the user's own AI assistant (Claude, Codex...) through the MCP server, with no model key
+
+
 class Material:
     enrich = None  # optional hook(record, request) -> request, used to add facts read from a project's repository
 
@@ -178,7 +181,7 @@ class Material:
 
     def models(self):
         settings = self.model.settings
-        return [m for m in dict.fromkeys((settings.model, settings.fallback_model)) if m]
+        return [m for m in dict.fromkeys((settings.model, settings.fallback_model)) if m] + [HOST]
 
     def shared_body(self, request, evidence=None):
         """Saved shared lesson text for this skill request, or None."""
@@ -212,8 +215,7 @@ class Material:
 
     def current(self, record, request, item):
         request = self._enrich(record, request)
-        settings = self.model.settings
-        models = {settings.model, settings.fallback_model} - {""}
+        models = set(self.models())
         return (
             item is not None and item.model in models
             and item.digest == self.digest(request, item.model)
@@ -243,6 +245,35 @@ class Material:
         if request.kind in ("skill", "project"):
             result.evidence = evidence
         return result, model
+
+    def task(self, record, request):
+        """What an AI assistant needs to write this item itself: instructions, JSON schema and context. No model call."""
+        request = self._enrich(record, request)
+        source = generic(request) if request.kind == "skill" else request
+        context = dict(source.context)
+        if request.kind in ("skill", "project"):
+            context["source_passages"] = self.evidence(request)
+        return {"instructions": BOUNDARY + PROMPTS[request.kind].instructions,
+                "schema": request.schema.model_json_schema(), "context": context}
+
+    def accept(self, record, request, data):
+        """Validate an item written by the user's AI assistant and save it, labelled as host-written."""
+        request = self._enrich(record, request)
+        evidence = self.evidence(request)
+        result = request.schema.model_validate(data)
+        if request.validate:
+            request.validate(result)
+        if request.kind in ("skill", "project"):
+            validate_citations(result, evidence)
+            result.evidence = evidence
+        if request.prepare_for_storage:
+            result = request.prepare_for_storage(result)
+        body = result.model_dump_json()
+        if request.kind == "skill":  # generic lessons are shared, like model-written ones
+            self.cache.put(self.digest(generic(request), HOST, evidence), request.title, HOST, body)
+        item = Item(request.slot, request.kind, request.title, self.digest(request, HOST, evidence), HOST, record.revision, body)
+        self.store.save_item(record, item)
+        return item
 
     def warm(self, request, progress=lambda _: None):
         """Fill the shared cache for a skill without touching any profile. True if it called the model."""

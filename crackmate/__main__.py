@@ -23,18 +23,6 @@ def table(rows, headers):
     return "\n".join([line(headers), line(["-" * w for w in widths]), *map(line, rows)])
 
 
-def attach(core, record, url, hint, progress):
-    """Attach a repo to a project: by name (URL=Project), by repo name, or the only project."""
-    projects = record.profile.projects
-    if not projects:
-        raise CrackError("Add a project to the profile first.")
-    repo_name = url.rstrip("/").split("/")[-1].removesuffix(".git").casefold()
-    pick = [p for p in projects if hint and hint.casefold() in p.title.casefold()] or [p for p in projects if repo_name in p.title.casefold().replace(" ", "-")] or (projects if len(projects) == 1 else [])
-    if len(pick) != 1:
-        raise CrackError(f"Which project is {url} for? Use --repo {url}=<project name>. Projects: {', '.join(p.title for p in projects)}.")
-    return career.attach(core, record, pick[0].id, url, None, False, progress)["repo"]
-
-
 def run(args, core, out, read):
     cmd = args.command
     if cmd == "profiles":
@@ -58,9 +46,13 @@ def run(args, core, out, read):
         for spec in args.repo or []:
             url, _, hint = spec.partition("=")
             out(f"Reading {url} …")
-            repo = attach(core, record, url, hint, lambda m: out(f"  {m}"))
+            repo = tools.attach(core, record, url, hint, lambda m: out(f"  {m}"))
             out(f"  {repo['facts']['loc']:,} lines; stack: {', '.join(t['name'] for t in repo['facts']['technologies'][:8]) or 'none detected'}.")
         _show_next(core, record, out)
+        return 0
+    if cmd == "mcp":  # must start with no profile yet: the assistant creates one with create_profile
+        from crackmate.mcp_server import serve
+        serve()
         return 0
     record = tools.resolve_profile(core, getattr(args, "profile", None))
     if cmd == "update":
@@ -86,9 +78,6 @@ def run(args, core, out, read):
             out("The web app is not built yet; run ./run.sh once. Starting the API only.")
         out(f"Open {URL_BASE}  (Ctrl+C to stop)")
         os.execv(sys.executable, [sys.executable, "-m", "uvicorn", "api.main:app", "--host", "127.0.0.1", "--port", str(args.port)])
-    elif cmd == "mcp":
-        from crackmate.mcp_server import serve
-        serve()
     return 0
 
 

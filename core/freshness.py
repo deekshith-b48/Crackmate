@@ -7,9 +7,7 @@ def check(material, record, request, item):
         return "none", "Not generated yet."
     if material.current(record, request, item):
         return "fresh", "Up to date with your profile, sources and models."
-    settings = material.model.settings
-    models = {settings.model, settings.fallback_model} - {""}
-    if item.model not in models:
+    if item.model not in material.models():
         return "stale", f"Written with {item.model.split('/')[-1]}, but your configured models changed."
     code = material._enrich(record, request).context.get("code")
     if code:

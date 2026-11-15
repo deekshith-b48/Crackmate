@@ -10,10 +10,12 @@ from api.services.profiles import view as profile_view
 from core.ask.search import hybrid
 from core.career import repo as repo_mod
 from core.export import clean, lesson_sections
-from core.material import project_request, skill_request
-from core.practice import review_answer
+from core.material import SECTIONS, claims_request, diagram_request, pitch_request, project_request, skill_request
+from core.practice import feedback_context, review_answer, save_feedback
 from core.review import Reviews, question_id
-from core.schemas import ProjectLesson, SkillLesson
+from core.resume import reviewed_text
+from core.schemas import Feedback, Profile, ProfileDraft, ProjectLesson, SkillLesson
+from prompts.templates import BOUNDARY, PROMPTS
 
 LEVELS = ("Basics", "Intermediate", "Advanced")
 
@@ -151,9 +153,7 @@ def grade_answer(core, record, qid, answer):
 
 
 def architecture(core, record, project):
-    match = [p for p in record.profile.projects if project.casefold() in p.title.casefold() or p.id.startswith(project)]
-    if len(match) != 1:
-        raise CrackError(f"Name one project: {', '.join(p.title for p in record.profile.projects) or 'none yet'}.")
+    match = [_project(record, project)]
     state = artifact_state(core, record, "diagram", match[0].id)
     if state["data"] is None:
         return {"project": match[0].title, "available": False, "message": "No architecture diagram saved yet. Draw it in the web app (Learn → Architecture)."}
@@ -174,3 +174,108 @@ def update_repos(core, record, progress=lambda _: None):
         _, changed = repo_mod.index(core.store, record.id, r["project_id"], r["url"], progress=progress)
         out.append({"url": r["url"], "changed": changed})
     return out
+
+
+# ---- Host-model mode: the user's own AI assistant (Claude, Codex...) writes the content, so no model key is needed. ----
+PENDING = {}  # task id -> what to save when the assistant sends its result; lives as long as the MCP session
+
+
+def _project(record, name):
+    match = [p for p in record.profile.projects if name.casefold() in p.title.casefold() or p.id.startswith(name)]
+    if len(match) != 1:
+        raise CrackError(f"Name one project: {', '.join(p.title for p in record.profile.projects) or 'none yet'}.")
+    return match[0]
+
+
+def _remember(task):
+    task_id = uuid4().hex[:12]
+    if len(PENDING) >= 50:
+        PENDING.pop(next(iter(PENDING)))
+    PENDING[task_id] = task
+    return task_id
+
+
+def prepare_lesson(core, record, kind="skill", topic="", level="Basics", project="", section=""):
+    """A lesson task for the assistant to write. If it already exists, return it instead."""
+    if kind == "skill":
+        topic = canonical_topic(core, record, topic)
+        if level not in LEVELS:
+            raise CrackError(f"Level must be one of {', '.join(LEVELS)}.")
+        if _body(core, record, topic, level):
+            return {"available": True, **lesson(core, record, topic, level)}
+        request = skill_request(record.profile, topic, level)
+    elif kind == "project":
+        if section not in SECTIONS:
+            raise CrackError(f"Section must be one of: {', '.join(SECTIONS)}.")
+        request = project_request(record.profile, _project(record, project), section)
+    elif kind == "claims":
+        request = claims_request(record.profile)
+    elif kind in ("pitch", "diagram"):
+        request = (pitch_request if kind == "pitch" else diagram_request)(record.profile, _project(record, project))
+    else:
+        raise CrackError("kind must be skill, project, claims, pitch or diagram.")
+    return {"available": False, "task_id": _remember(("lesson", request)), "title": request.title,
+            "next_step": "Write the result as one JSON object that follows `schema`, using `instructions` and `context`, then call save_lesson with this task_id.",
+            **core.material.task(record, request)}
+
+
+def save_lesson(core, record, task_id, result):
+    kind, request = PENDING.get(task_id, (None, None))
+    if kind != "lesson":
+        raise CrackError("Unknown or expired task_id. Call prepare_lesson again.")
+    item = core.material.accept(record, request, result)  # validation errors are raised as readable messages
+    PENDING.pop(task_id, None)
+    return {"saved": True, "title": item.title, "written_by": item.model, "next_step": "Open it in the web app, or ask for the next study step."}
+
+
+def prepare_grading(core, record, qid, answer):
+    """A scoring task for the assistant: it grades the answer against the rubric, then calls save_grading."""
+    if not answer.strip() or len(answer) > 3500:
+        raise CrackError("Give an answer between 1 and 3,500 characters.")
+    request, question = _find(core, record, qid)
+    context, evidence = feedback_context(core.store, core.service, request, question, answer)
+    task_id = _remember(("grading", request, question, answer, evidence))
+    return {"task_id": task_id, "next_step": "Score the candidate's answer as one JSON object that follows `schema`, using `instructions` and `context`, then call save_grading with this task_id.",
+            "instructions": BOUNDARY + PROMPTS["feedback"].instructions, "schema": Feedback.model_json_schema(), "context": context}
+
+
+def save_grading(core, record, task_id, result):
+    task = PENDING.get(task_id)
+    if not task or task[0] != "grading":
+        raise CrackError("Unknown or expired task_id. Call prepare_grading again.")
+    _, request, question, answer, evidence = task
+    fb = save_feedback(core.store, record, uuid4().hex, request, question, answer, Feedback.model_validate(result), evidence)
+    PENDING.pop(task_id, None)
+    return {"scores": {k: getattr(fb, k).score for k in ("accuracy", "coverage", "reasoning", "clarity")}, "correct": fb.correct, "missing": fb.missing,
+            "better_answer": fb.corrected, "follow_up": fb.follow_up, "scale": "0 to 4 per dimension; coaching estimates.", "saved": True}
+
+
+def attach(core, record, url, hint, progress):
+    """Attach a repo to a project: by name (URL=Project), by repo name, or the only project."""
+    projects = record.profile.projects
+    if not projects:
+        raise CrackError("Add a project to the profile first.")
+    repo_name = url.rstrip("/").split("/")[-1].removesuffix(".git").casefold()
+    pick = [p for p in projects if hint and hint.casefold() in p.title.casefold()] or [p for p in projects if repo_name in p.title.casefold().replace(" ", "-")] or (projects if len(projects) == 1 else [])
+    if len(pick) != 1:
+        raise CrackError(f"Which project is {url} for? Use --repo {url}=<project name>. Projects: {', '.join(p.title for p in projects)}.")
+    return career.attach(core, record, pick[0].id, url, None, False, progress)["repo"]
+
+
+def prepare_profile(core, text):
+    """A profile-extraction task for the assistant (no model key). Contact details are the user's own, shared with their own assistant."""
+    reviewed = reviewed_text(text, core.settings.limits)
+    return {"task_id": _remember(("profile",)),
+            "next_step": "Extract the profile as one JSON object that follows `schema` from `context.reviewed_resume`, then call save_profile with this task_id.",
+            "instructions": BOUNDARY + PROMPTS["profile"].instructions, "schema": ProfileDraft.model_json_schema(), "context": {"reviewed_resume": reviewed}}
+
+
+def save_profile(core, task_id, draft, role="", company=""):
+    task = PENDING.get(task_id)
+    if not task or task[0] != "profile":
+        raise CrackError("Unknown or expired task_id. Call create_profile again.")
+    profile = Profile.from_draft(ProfileDraft.model_validate(draft), role=(role or "").strip() or None, company=(company or "").strip() or None)
+    record = core.store.create(profile)
+    PENDING.pop(task_id, None)
+    return {"profile_id": record.id[:8], "projects": [p.title for p in profile.projects],
+            "next_step": "Attach each project's public GitHub repository with attach_repo, then call get_study_next."}

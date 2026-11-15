@@ -62,7 +62,8 @@ You prepare, practise, see your weak spots, then study exactly those. Repeat unt
 | 🕸️ **Analyse** | Skill graph, interview-risk scores, hotspots in your code, engineering decisions from git history. |
 | 🗓️ **Plan** | A time-boxed study plan that adapts to what you get wrong. |
 | 💬 **Ask CrackMate** | Questions answered only from your own material, with numbered sources. |
-| 🧰 **CLI and MCP** | Study from the terminal or inside Claude. |
+| 🔌 **Claude and Codex** | Run as an MCP server: your own AI assistant does the writing, no API key. |
+| 🧰 **Terminal** | Study from the command line. |
 
 <details>
 <summary><b>Also included</b></summary>
@@ -229,7 +230,21 @@ docker run --rm -p 127.0.0.1:8000:8000 \
 
 Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Your data is kept in the `crackmate-data` volume. Add `-e ALT_LLM_API_KEY=... -e ALT_LLM_BASE_URL=... -e ALT_LLM_MODEL=...` for a backup provider. Keep `127.0.0.1:` in the port flag so only your own computer can reach the app.
 
-## 🧰 Terminal and Claude (MCP)
+## 🔌 Use it inside Claude or Codex (no API key)
+
+Already pay for Claude Code or Codex? CrackMate runs as an **MCP server**, so your assistant writes the lessons and scores your answers with **your own subscription**. No Groq key, no third-party service.
+
+```sh
+git clone https://github.com/deekshith-b48/Crackmate-.git && cd Crackmate-
+claude mcp add crackmate -- "$PWD/scripts/mcp.sh"      # Claude Code
+codex mcp add crackmate -- "$PWD/scripts/mcp.sh"       # Codex
+```
+
+Then just say: *"Use CrackMate to prepare me for my interview. Here is my resume: ..."*
+
+It also ships as a Claude Code plugin (`/plugin marketplace add deekshith-b48/Crackmate-`). Full guide, tool list and setup for Claude Desktop: [docs/connect-ai-assistants.md](docs/connect-ai-assistants.md).
+
+## 🧰 Terminal
 
 ```sh
 ./crackmate_cli next     # the one best thing to study right now
@@ -238,7 +253,7 @@ Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Your data is kept in t
 ./crackmate_cli brief -o brief.md
 ```
 
-To study inside Claude, run `./crackmate_cli mcp` as an MCP server. Full command list in [docs/reference.md](docs/reference.md).
+Full command list in [docs/reference.md](docs/reference.md).
 
 ## 🔒 Your data stays yours
 

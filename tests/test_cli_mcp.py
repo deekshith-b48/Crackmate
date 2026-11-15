@@ -129,10 +129,9 @@ class CliTests(Base):
         self.assertIn("Cannot find", self.cli("init", "--resume", "nope.pdf", "--yes")[1])
         self.lines.clear()
         profile = self.core.store.create(Profile(projects=[Project(title="A"), Project(title="B")]))
-        from crackmate.__main__ import attach
         from crackmate.tools import CrackError
         with self.assertRaisesRegex(CrackError, "Which project"):
-            attach(self.core, profile, "https://github.com/x/unrelated", "", lambda _: None)
+            tools.attach(self.core, profile, "https://github.com/x/unrelated", "", lambda _: None)
 
 
 class ToolTests(Base):
@@ -170,16 +169,60 @@ class ToolTests(Base):
         self.assertTrue(tools.search_knowledge(self.core, self.record, "Redis PostgreSQL"))  # found in the resume project passage
 
 
+class HostModeTests(Base):
+    """The user's own AI assistant writes and scores, so no model key is used."""
+    def setUp(self):
+        super().setUp()
+        tools.PENDING.clear()
+        patcher = patch.object(self.core.service, "generate", side_effect=AssertionError("host mode must not call a model"))
+        self.addCleanup(patcher.stop)
+        patcher.start()
+
+    def test_assistant_writes_a_lesson_then_scores_an_answer(self):
+        task = tools.prepare_lesson(self.core, self.record, "skill", "Caching", "Basics")
+        self.assertFalse(task["available"])
+        self.assertTrue(task["instructions"] and task["schema"]["properties"] and task["context"]["topic"] == "Caching")
+        saved = tools.save_lesson(self.core, self.record, task["task_id"], skill_lesson().model_dump())
+        self.assertEqual(saved["written_by"], "host")
+        self.assertTrue(tools.lesson(self.core, self.record, "Caching", "Basics")["available"])
+        self.assertTrue(tools.prepare_lesson(self.core, self.record, "skill", "Caching", "Basics")["available"])  # exists: no new task
+
+        question = tools.quiz_me(self.core, self.record, "Caching", 1)[0]
+        grading = tools.prepare_grading(self.core, self.record, question["id"], "It caches hot reads.")
+        result = tools.save_grading(self.core, self.record, grading["task_id"], FEEDBACK.model_dump())
+        self.assertEqual(result["scores"]["clarity"], 4)
+        self.assertEqual(len(self.core.store.attempts(self.record.id)), 1)
+
+    def test_assistant_builds_a_profile_from_resume_text(self):
+        task = tools.prepare_profile(self.core, "Priya Rao. Backend engineer. Built a billing API with Go and Postgres.")
+        self.assertIn("Priya Rao", task["context"]["reviewed_resume"])
+        draft = {"name": "Priya Rao", "summary": "Backend engineer.", "skills": {"language": ["Go"], "database": ["PostgreSQL"]}, "projects": [{"title": "Billing API", "technologies": ["Go"]}]}
+        saved = tools.save_profile(self.core, task["task_id"], draft, "Backend Engineer", "Acme")
+        self.assertEqual(saved["projects"], ["Billing API"])
+        self.assertEqual(tools.resolve_profile(self.core).profile.company, "Acme")  # newest profile is the active one
+
+    def test_bad_results_and_unknown_tasks_are_refused(self):
+        with self.assertRaises(tools.CrackError):
+            tools.save_lesson(self.core, self.record, "nope", {})
+        task = tools.prepare_lesson(self.core, self.record, "skill", "Caching", "Basics")
+        with self.assertRaises(ValueError):  # pydantic validation error: not a valid lesson
+            tools.save_lesson(self.core, self.record, task["task_id"], {"explanation": "too short"})
+        self.assertIn(task["task_id"], tools.PENDING)  # a failed save can be retried with the same task
+        with self.assertRaises(tools.CrackError):
+            tools.prepare_lesson(self.core, self.record, "project", project="Order Tracker", section="Nope")
+
+
 class McpTests(Base):
-    def test_server_exposes_the_ten_tools_and_returns_json(self):
+    def test_server_exposes_the_tools_and_returns_json(self):
         server = build_server(lambda: self.core)
         async def go():
             names = sorted(t.name for t in await server.list_tools())
             result = await server.call_tool("get_weak_spots", {"n": 2})
             return names, result
         names, result = asyncio.run(go())
-        self.assertEqual(names, ["get_interview_brief", "get_lesson", "get_overview", "get_profile", "get_project_architecture",
-                                 "get_study_next", "get_weak_spots", "grade_answer", "quiz_me", "search_knowledge"])
+        self.assertEqual(names, ["attach_repo", "create_profile", "get_interview_brief", "get_lesson", "get_overview", "get_profile",
+                                 "get_project_architecture", "get_study_next", "get_weak_spots", "grade_answer", "prepare_grading",
+                                 "prepare_lesson", "quiz_me", "save_grading", "save_lesson", "save_profile", "search_knowledge"])
         payload = json.loads(result.content[0].text) if not isinstance(json.loads(result.content[0].text), dict) else json.loads(result.content[0].text)
         self.assertTrue(payload)
         profile = json.loads(asyncio.run(build_server(lambda: self.core).call_tool("get_profile", {})).content[0].text)

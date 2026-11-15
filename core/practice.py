@@ -12,6 +12,36 @@ RUBRIC = {
 SCALE = "0 absent or wrong · 1 limited · 2 partial · 3 sound with minor gaps · 4 strong"
 
 
+def feedback_context(store, service, request, question, answer):
+    """The context a scorer needs for one answer (also used when the user's own AI assistant scores it). Returns (context, evidence)."""
+    context = {
+        "focus": request.title,
+        "lesson_context": {key: value for key, value in request.context.items() if key != "project"},
+        "question": question.question,
+        "example_answer": question.answer,
+        "candidate_answer": answer.strip(),
+    }
+    if request.kind == "project":
+        context["lesson_context"]["project"] = {key: value for key, value in request.context["project"].items() if key != "reference"}
+    evidence = Material(store, service).evidence(request)
+    context["source_passages"] = evidence
+    return context, evidence
+
+
+def save_feedback(store, record, attempt_id, request, question, answer, feedback, evidence, *, assistance=None):
+    feedback.evidence = evidence
+    from core.learning import RUBRIC
+    feedback.learning_metadata = {
+        "rubric": RUBRIC, "difficulty": request.context.get("level", "unknown"),
+        "hint": (assistance or {}).get("hint", False),
+        "revealed": (assistance or {}).get("revealed", False),
+        "retry": False,
+        "independent": not any((assistance or {}).values()),
+    }
+    store.save_attempt(record, attempt_id, request.title, question.question, answer.strip(), feedback)
+    return feedback
+
+
 def review_answer(store, service, record, attempt_id, request, question, answer, progress, *, assistance=None):
     if not answer.strip() or len(answer) > 3500:
         raise ValueError("Enter an answer between 1 and 3,500 characters.")
@@ -20,32 +50,8 @@ def review_answer(store, service, record, attempt_id, request, question, answer,
         saved = next((attempt for attempt in store.attempts(record.id) if attempt.id == attempt_id), None)
         if saved:
             return saved.feedback
-        context = {
-            "focus": request.title,
-            "lesson_context": {
-                key: value for key, value in request.context.items() if key != "project"
-            },
-            "question": question.question,
-            "example_answer": question.answer,
-            "candidate_answer": answer.strip(),
-        }
-        if request.kind == "project":
-            context["lesson_context"]["project"] = {
-                key: value for key, value in request.context["project"].items() if key != "reference"
-            }
-        evidence = Material(store, service).evidence(request)
-        context["source_passages"] = evidence
+        context, evidence = feedback_context(store, service, request, question, answer)
         feedback, _ = service.generate("feedback", context, Feedback,
                                       validate=lambda result: validate_citations(result, evidence, required=False),  # scoring an answer need not cite a source
                                       progress=progress)
-        feedback.evidence = evidence
-        from core.learning import RUBRIC
-        feedback.learning_metadata = {
-            "rubric": RUBRIC, "difficulty": request.context.get("level", "unknown"),
-            "hint": (assistance or {}).get("hint", False),
-            "revealed": (assistance or {}).get("revealed", False),
-            "retry": False,
-            "independent": not any((assistance or {}).values()),
-        }
-        store.save_attempt(record, attempt_id, request.title, question.question, answer.strip(), feedback)
-        return feedback
+        return save_feedback(store, record, attempt_id, request, question, answer, feedback, evidence, assistance=assistance)
