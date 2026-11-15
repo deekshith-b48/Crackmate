@@ -2,9 +2,25 @@
   "name": "crackmate",
   "version": "0.2.0",
   "description": "Free, private interview coach. Your own AI assistant writes lessons and scores answers, so no API key is needed.",
-  "author": { "name": "deekshith-b48" },
+  "author": {
+    "name": "deekshith-b48"
+  },
   "homepage": "https://github.com/deekshith-b48/Crackmate",
   "repository": "https://github.com/deekshith-b48/Crackmate",
   "license": "MIT",
-  "keywords": ["interview", "mock-interview", "study", "spaced-repetition", "mcp"]
+  "keywords": [
+    "interview",
+    "mock-interview",
+    "study",
+    "spaced-repetition",
+    "mcp"
+  ],
+  "mcpServers": {
+    "crackmate": {
+      "command": "bash",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/scripts/mcp.sh"
+      ]
+    }
+  }
 }
