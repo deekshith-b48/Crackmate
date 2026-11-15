@@ -24,8 +24,8 @@ CrackMate checks everything the assistant sends against a strict schema before s
 ## Set up (once)
 
 ```sh
-git clone https://github.com/deekshith-b48/Crackmate-.git
-cd Crackmate-
+git clone https://github.com/deekshith-b48/Crackmate.git
+cd Crackmate
 ./scripts/mcp.sh      # first run installs what it needs, then waits; press Ctrl+C
 ```
 
@@ -36,27 +36,27 @@ Then add it to your assistant:
 Option A, plugin (adds the coaching skill too):
 
 ```
-/plugin marketplace add deekshith-b48/Crackmate-
+/plugin marketplace add deekshith-b48/Crackmate
 /plugin install crackmate@crackmate
 ```
 
 Option B, just the tools:
 
 ```sh
-claude mcp add crackmate -- /full/path/to/Crackmate-/scripts/mcp.sh
+claude mcp add crackmate -- /full/path/to/Crackmate/scripts/mcp.sh
 ```
 
 ### Codex
 
 ```sh
-codex mcp add crackmate -- /full/path/to/Crackmate-/scripts/mcp.sh
+codex mcp add crackmate -- /full/path/to/Crackmate/scripts/mcp.sh
 ```
 
 or add to `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.crackmate]
-command = "/full/path/to/Crackmate-/scripts/mcp.sh"
+command = "/full/path/to/Crackmate/scripts/mcp.sh"
 ```
 
 Optional: put the coaching rules in your project's `AGENTS.md`:
@@ -73,10 +73,20 @@ Never invent facts about the candidate's code. Ask one question at a time.
 Add this to the app's MCP settings file (for Claude Desktop: `claude_desktop_config.json`):
 
 ```json
-{ "mcpServers": { "crackmate": { "command": "/full/path/to/Crackmate-/scripts/mcp.sh" } } }
+{ "mcpServers": { "crackmate": { "command": "/full/path/to/Crackmate/scripts/mcp.sh" } } }
 ```
 
 Restart the app after editing.
+
+## See everything on the website
+
+Everything your assistant writes is saved to the same local database the website reads. Start the website with `./run.sh`, open [http://127.0.0.1:8000](http://127.0.0.1:8000), and use both side by side:
+
+- Profiles, lessons, scores, risks and progress show up on every page. Switch back to the browser tab (or reload) and the page refreshes.
+- Lessons show **Saved · written by your AI assistant**.
+- With no Groq key the website says **Using your AI assistant (MCP)** and tells you what to ask Claude or Codex.
+
+Run the website from the same folder as the assistant's MCP command, so both use the same data.
 
 ## Your first chat
 

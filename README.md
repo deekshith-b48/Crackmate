@@ -13,7 +13,7 @@ Turn your resume and real project code into lessons, mock interviews and a study
   <a href="#-api-keys-which-one-should-i-use"><img alt="API keys" src="https://img.shields.io/badge/API%20keys-1b0a2e?style=for-the-badge"></a>
   <a href="#-features"><img alt="Features" src="https://img.shields.io/badge/Features-1b0a2e?style=for-the-badge"></a>
   <a href="docs/reference.md"><img alt="Docs" src="https://img.shields.io/badge/Docs-1b0a2e?style=for-the-badge"></a>
-  <a href="https://github.com/deekshith-b48/Crackmate-/issues"><img alt="Report a bug" src="https://img.shields.io/badge/Report%20a%20bug-1b0a2e?style=for-the-badge"></a>
+  <a href="https://github.com/deekshith-b48/Crackmate/issues"><img alt="Report a bug" src="https://img.shields.io/badge/Report%20a%20bug-1b0a2e?style=for-the-badge"></a>
 </p>
 
 <p align="center">
@@ -83,8 +83,8 @@ You prepare, practise, see your weak spots, then study exactly those. Repeat unt
 
 **1. Download**
 ```sh
-git clone https://github.com/deekshith-b48/Crackmate-.git
-cd Crackmate-
+git clone https://github.com/deekshith-b48/Crackmate.git
+cd Crackmate
 ```
 
 **2. Install**
@@ -235,14 +235,14 @@ Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Your data is kept in t
 Already pay for Claude Code or Codex? CrackMate runs as an **MCP server**, so your assistant writes the lessons and scores your answers with **your own subscription**. No Groq key, no third-party service.
 
 ```sh
-git clone https://github.com/deekshith-b48/Crackmate-.git && cd Crackmate-
+git clone https://github.com/deekshith-b48/Crackmate.git && cd Crackmate
 claude mcp add crackmate -- "$PWD/scripts/mcp.sh"      # Claude Code
 codex mcp add crackmate -- "$PWD/scripts/mcp.sh"       # Codex
 ```
 
-Then just say: *"Use CrackMate to prepare me for my interview. Here is my resume: ..."*
+Then just say: *"Use CrackMate to prepare me for my interview. Here is my resume: ..."*, and open the website (`./run.sh`) to see everything it creates: profile, lessons, scores and risks.
 
-It also ships as a Claude Code plugin (`/plugin marketplace add deekshith-b48/Crackmate-`). Full guide, tool list and setup for Claude Desktop: [docs/connect-ai-assistants.md](docs/connect-ai-assistants.md).
+It also ships as a Claude Code plugin (`/plugin marketplace add deekshith-b48/Crackmate`). Full guide, tool list and setup for Claude Desktop: [docs/connect-ai-assistants.md](docs/connect-ai-assistants.md).
 
 ## 🧰 Terminal
 

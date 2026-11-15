@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { StepGenerating } from "@/components/ui/StepGenerating";
 import { api } from "@/lib/api";
+import { askAssistant, writtenBy } from "@/lib/assistant";
 import type { Status } from "@/lib/profile";
 import type { useJob } from "@/lib/stream";
 import type { ArtifactState } from "@/lib/types";
@@ -22,14 +23,14 @@ export function RunBar({ state, job, onRun, runLabel, redoLabel, runningTitle, e
       <div className="flex flex-wrap items-center gap-2">
         {state?.data ? (
           <>
-            <Badge tone={state.status === "current" ? "good" : "warn"}>{state.status === "current" ? "Saved" : "Outdated"} · {state.model?.split("/").pop()}</Badge>
+            <Badge tone={state.status === "current" ? "good" : "warn"}>{state.status === "current" ? "Saved" : "Outdated"} · {writtenBy(state.model)}</Badge>
             <Button size="sm" onClick={() => onRun(true)} disabled={noKey}><RefreshCw className="size-4" /> {redoLabel}</Button>
             <a href={exportHref} download><Button size="sm"><Download className="size-4" /> Download</Button></a>
           </>
         ) : (
           <>
             <Button variant="primary" onClick={() => onRun(false)} disabled={noKey}><Sparkles className="size-4" /> {runLabel}</Button>
-            {noKey && <span className="text-sm text-warn">Add your Groq key to enable this.</span>}
+            {noKey && <span className="text-sm text-warn">{askAssistant("write this for my profile")}</span>}
           </>
         )}
       </div>

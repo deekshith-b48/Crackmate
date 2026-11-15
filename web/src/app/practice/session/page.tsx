@@ -1,4 +1,5 @@
 "use client";
+import { askAssistant } from "@/lib/assistant";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCheck } from "lucide-react";
 import Link from "next/link";
@@ -72,6 +73,7 @@ export default function Practice() {
                   <Field label="Your answer" htmlFor="answer" hint="Answer as you would out loud. Code is reviewed as text."><Textarea id="answer" maxLength={3500} value={text} onChange={(e) => setText(e.target.value)} className="min-h-40" /></Field>
                   {job.status === "error" && <p role="alert" className="text-sm text-bad">{job.error}</p>}
                   <div className="flex gap-2"><Button variant="primary" onClick={submit} disabled={!text.trim() || !status?.has_key}>Get feedback</Button><Button variant="ghost" onClick={() => go(index + 1)}>Skip question</Button></div>
+                  {status && !status.has_key && <p className="text-xs text-warn">{askAssistant("score my answer to this question")}</p>}
                 </>
               ) : (
                 <>

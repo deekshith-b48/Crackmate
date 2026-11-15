@@ -71,7 +71,7 @@ export function Sidebar({ open = false, onClose = () => {} }: { open?: boolean; 
         <div className="flex items-center justify-between gap-2">
           <p className="flex items-center gap-2 font-medium text-ink">
             <span className={cn("size-2 rounded-full", status?.has_key ? "bg-good" : "bg-warn")} />
-            {status ? (status.has_key ? "Groq connected" : "Add your Groq key") : "Connecting…"}
+            {status ? (status.has_key ? "Groq connected" : "Using your AI assistant (MCP)") : "Connecting…"}
           </p>
           <button onClick={toggle} aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} title={theme === "dark" ? "Light theme" : "Dark theme"}
             className="flex size-8 items-center justify-center rounded-[var(--radius-control)] text-muted transition-colors hover:bg-slate-100 hover:text-ink">

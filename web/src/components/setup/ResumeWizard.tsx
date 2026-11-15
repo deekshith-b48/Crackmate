@@ -103,7 +103,7 @@ export function ResumeWizard({ onCreated }: { onCreated: (id: string) => void })
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-brand-700"><span className="flex size-6 items-center justify-center rounded-full bg-brand-600 text-xs text-white">3</span> Extract your profile</div>
         <div className="mb-4 flex gap-3 rounded-[var(--radius-control)] bg-brand-50 p-3 text-sm text-brand-700"><ShieldCheck className="mt-0.5 size-4 shrink-0" /><p>Extracting sends only your reviewed resume text to Groq. Your key never leaves this computer.</p></div>
         <Checkbox checked={consent} onChange={(e) => setConsent(e.target.checked)} label="Send the reviewed resume text to Groq" />
-        {noKey && <p className="mt-3 text-sm text-warn">Add your Groq key to <code className="font-mono">.streamlit/secrets.toml</code> and restart to enable extraction. You can still start with a blank profile.</p>}
+        {noKey && <p className="mt-3 text-sm text-warn">No Groq key. Ask Claude or Codex: “Use CrackMate to create my profile from this resume”, and it will appear here. Or add a Groq key to <code className="font-mono">.streamlit/secrets.toml</code>. You can also start with a blank profile.</p>}
         <div className="mt-5 flex flex-wrap gap-3">
           <Button variant="primary" onClick={extract} disabled={!ready}><FileText className="size-4" /> Extract profile</Button>
           <Button variant="ghost" onClick={blank}>Start with a blank profile</Button>
