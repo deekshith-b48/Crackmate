@@ -9,8 +9,8 @@
 Turn your resume and real project code into lessons, mock interviews and a study plan.</p>
 
 <p align="center">
-  <a href="#-quick-start"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-9333ea?style=for-the-badge"></a>
-  <a href="#-api-keys-which-one-should-i-use"><img alt="API keys" src="https://img.shields.io/badge/API%20keys-1b0a2e?style=for-the-badge"></a>
+  <a href="#-quick-start-pick-one-way"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-9333ea?style=for-the-badge"></a>
+  <a href="#-api-keys-for-way-1-which-one-should-i-use"><img alt="API keys" src="https://img.shields.io/badge/API%20keys-1b0a2e?style=for-the-badge"></a>
   <a href="#-features"><img alt="Features" src="https://img.shields.io/badge/Features-1b0a2e?style=for-the-badge"></a>
   <a href="docs/reference.md"><img alt="Docs" src="https://img.shields.io/badge/Docs-1b0a2e?style=for-the-badge"></a>
   <a href="https://github.com/deekshith-b48/Crackmate/issues"><img alt="Report a bug" src="https://img.shields.io/badge/Report%20a%20bug-1b0a2e?style=for-the-badge"></a>
@@ -77,7 +77,21 @@ You prepare, practise, see your weak spots, then study exactly those. Repeat unt
 
 </details>
 
-## ⚡ Quick start
+## ⚡ Quick start: pick one way
+
+Both ways give you the same app, the same website and the same data. Pick the one that fits what you already have.
+
+| | 🛠️ **Way 1: Manual** | 🔌 **Way 2: Claude or Codex** |
+|---|---|---|
+| **You need** | A free Groq key | A Claude or Codex subscription you already pay for |
+| **Who writes the lessons** | A free AI service (Groq, with an optional Gemini backup) | Your own AI assistant |
+| **API key** | Yes, free | None |
+| **Where you work** | The CrackMate website | Chat with your assistant, plus the website |
+| **Best for** | Anyone, no paid tools | People who use Claude Code, Claude Desktop or Codex daily |
+
+You can do both: they share one database, so set up Way 1 first and add Way 2 later.
+
+### 🛠️ Way 1: Manual (free, no Claude or Codex needed)
 
 **You need:** Python 3.13, Node.js 20+, git, and a free [Groq key](https://console.groq.com/keys).
 
@@ -124,7 +138,105 @@ Update later with `git pull`, then `./run.sh`.
 
 </details>
 
-## 🔑 API keys: which one should I use?
+### 🔌 Way 2: With Claude or Codex (premium tools, no API key)
+
+CrackMate runs as an **MCP server**. Your assistant then writes the lessons and scores your answers using **your own subscription**, and CrackMate stores everything locally. Works on macOS and Linux (on Windows, use WSL).
+
+**Step 1. Get the code and let it set itself up** (once):
+
+```sh
+git clone https://github.com/deekshith-b48/Crackmate.git
+cd Crackmate
+./scripts/mcp.sh      # first run installs what it needs (about a minute). Press Ctrl+C when it waits.
+```
+
+**Step 2. Connect your assistant.** Use the full path to `scripts/mcp.sh` (run `pwd` inside the folder to see it).
+
+<details open>
+<summary><b>Claude Code</b></summary>
+
+```sh
+claude mcp add crackmate -- /full/path/to/Crackmate/scripts/mcp.sh
+```
+
+Or install it as a plugin (adds a coaching skill too):
+
+```
+/plugin marketplace add deekshith-b48/Crackmate
+/plugin install crackmate@crackmate
+```
+
+Check with `/mcp`: `crackmate` should show as connected.
+
+</details>
+
+<details>
+<summary><b>Claude Desktop</b></summary>
+
+Open the config file, add the `mcpServers` block, then quit and reopen Claude Desktop.
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "crackmate": { "command": "/full/path/to/Crackmate/scripts/mcp.sh" }
+  }
+}
+```
+
+If the file already has other settings, keep them and just add `mcpServers`.
+
+</details>
+
+<details>
+<summary><b>Codex</b></summary>
+
+```sh
+codex mcp add crackmate -- /full/path/to/Crackmate/scripts/mcp.sh
+```
+
+Or add this to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.crackmate]
+command = "/full/path/to/Crackmate/scripts/mcp.sh"
+```
+
+Optional, in your project's `AGENTS.md`:
+
+```md
+## CrackMate
+Use the crackmate MCP tools for interview preparation. Preparation and mock practice only, never during a live interview.
+Write lessons and scores yourself: call prepare_lesson / prepare_grading, follow `instructions` and `schema`, then call save_lesson / save_grading.
+Never invent facts about the candidate's code. Ask one question at a time.
+```
+
+Codex support follows the same MCP standard, but we have not tested it in the Codex app yet.
+
+</details>
+
+**Step 3. Start talking.** For example:
+
+> *Use CrackMate to prepare me for my interview. Here is my resume: …*
+
+Your assistant creates your profile, reads your public GitHub repos, tells you what to study, teaches it and quizzes you.
+
+**Step 4. See it on the website** (optional but recommended). Run `./run.sh` from the same folder and open [http://127.0.0.1:8000](http://127.0.0.1:8000). Profiles, lessons, scores and risks appear on every page, written by "your AI assistant".
+
+<details>
+<summary><b>Not working?</b></summary>
+
+- **`crackmate` shows "connection closed" or does not appear:** run `./scripts/mcp.sh` in a terminal first and wait for the install to finish. Check the path in your config is the full path and has no typos. Restart the assistant.
+- **Folder name has a space:** that is fine in the JSON and TOML above; just keep the path exactly as it is.
+- **Website shows no profile:** the assistant and the website must use the same folder, so run `./run.sh` from the folder in your MCP config.
+- **Quality:** a stronger assistant model writes better lessons and scores.
+
+Full tool list and details: [docs/connect-ai-assistants.md](docs/connect-ai-assistants.md).
+
+</details>
+
+## 🔑 API keys for Way 1: which one should I use?
 
 CrackMate needs an AI provider to write lessons and grade answers. It uses a **main** key (Groq) and an optional **backup** key (any other provider) that takes over automatically when the main one is busy.
 
@@ -229,20 +341,6 @@ docker run --rm -p 127.0.0.1:8000:8000 \
 ```
 
 Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Your data is kept in the `crackmate-data` volume. Add `-e ALT_LLM_API_KEY=... -e ALT_LLM_BASE_URL=... -e ALT_LLM_MODEL=...` for a backup provider. Keep `127.0.0.1:` in the port flag so only your own computer can reach the app.
-
-## 🔌 Use it inside Claude or Codex (no API key)
-
-Already pay for Claude Code or Codex? CrackMate runs as an **MCP server**, so your assistant writes the lessons and scores your answers with **your own subscription**. No Groq key, no third-party service.
-
-```sh
-git clone https://github.com/deekshith-b48/Crackmate.git && cd Crackmate
-claude mcp add crackmate -- "$PWD/scripts/mcp.sh"      # Claude Code
-codex mcp add crackmate -- "$PWD/scripts/mcp.sh"       # Codex
-```
-
-Then just say: *"Use CrackMate to prepare me for my interview. Here is my resume: ..."*, and open the website (`./run.sh`) to see everything it creates: profile, lessons, scores and risks.
-
-It also ships as a Claude Code plugin (`/plugin marketplace add deekshith-b48/Crackmate`). Full guide, tool list and setup for Claude Desktop: [docs/connect-ai-assistants.md](docs/connect-ai-assistants.md).
 
 ## 🧰 Terminal
 
