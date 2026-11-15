@@ -19,6 +19,7 @@ from prompts.templates import BOUNDARY, PROMPTS
 # Small, fast model for extraction and scoring; everything else uses the large model.
 FAST_KINDS = {"profile", "feedback"}
 ATTEMPTS = 3  # exponential backoff: 1s, 2s, then give up on this model
+MAX_TOKENS = 6000  # reasoning models spend completion tokens thinking; a cut-off answer is retried with more room, up to this cap
 
 
 class ModelError(RuntimeError):
@@ -77,6 +78,11 @@ class ModelService:
                 )
                 self._log(model, result)
                 choice = next(iter(result.choices), None)
+                empty = choice is not None and not (choice.message.content or "").strip()
+                if choice is not None and (choice.finish_reason == "length" or empty) and tokens < MAX_TOKENS:
+                    tokens = min(tokens * 2, MAX_TOKENS)
+                    progress("The answer needed more room. Retrying with a larger limit…")
+                    continue
                 if choice is None or choice.finish_reason != "stop":
                     return ""
                 return choice.message.content or ""
@@ -140,8 +146,8 @@ class ModelService:
         alt = [(None, cfg.alt_model)] if cfg.alt_api_key and cfg.alt_base_url and cfg.alt_model else []
         return [(client, m) for m in models] + alt
 
-    def _ask(self, stack, client, models, messages, tokens, progress):
-        routes = self._routes(client, models)
+    def _ask(self, stack, client, models, messages, tokens, progress, skip=()):
+        routes = [r for r in self._routes(client, models) if r[1] not in skip]
         for i, (c, model) in enumerate(routes):
             try:
                 c = c or self._alt_client(stack)
@@ -192,26 +198,39 @@ class ModelService:
             {"role": "user", "content": json.dumps(context, ensure_ascii=False)},
         ]
         with ExitStack() as stack:
-            client = stack.enter_context(Groq(api_key=self.settings.api_key, timeout=30.0, max_retries=0))
+            base = stack.enter_context(Groq(api_key=self.settings.api_key, timeout=30.0, max_retries=0))
             progress("Requesting a response from Groq…")
-            raw, model, client = self._ask(stack, client, self.chain(kind), messages, prompt.tokens, progress)
-
-            for attempt in range(2):
-                try:
-                    result = schema.model_validate_json(raw)
-                    if validate:
-                        validate(result)
-                    return result, model
-                except (ValidationError, ValueError) as problem:
-                    if attempt:
-                        raise ModelError("The model did not return a valid result. Your work is preserved. Try again.") from None
-                    progress("Checking the format and requesting one corrected response…")
-                    repair_messages = [
-                        {"role": "system", "content": system + (
-                            "\nThe prior response was invalid. Produce a complete corrected JSON object "
-                            "from the original data. Check every constraint and any timing budget. "
-                            "Problem found: " + " ".join(str(problem).split())[:400]
-                        )},
-                        messages[1],
-                    ]
-                    raw = self._request(client, model, repair_messages, prompt.tokens, progress)
+            tried = set()  # models whose answer was unusable even after a repair: move on to the next one
+            while True:
+                raw, model, client = self._ask(stack, base, self.chain(kind), messages, prompt.tokens, progress, tried)
+                for attempt in range(2):
+                    try:
+                        result = schema.model_validate_json(raw)
+                        if validate:
+                            validate(result)
+                        return result, model
+                    except (ValidationError, ValueError) as problem:
+                        if attempt:
+                            logging.getLogger("crackmate.llm").warning("%s output rejected (%s): %s", kind, model, " ".join(str(problem).split())[:500])
+                            tried.add(model)
+                            if not [r for r in self._routes(base, self.chain(kind)) if r[1] not in tried]:
+                                raise ModelError("The model did not return a valid result. Your work is preserved. Try again.") from None
+                            progress(f"{model} did not return a usable result. Trying another model…")
+                            break
+                        progress("Checking the format and requesting one corrected response…")
+                        repair_messages = [
+                            {"role": "system", "content": system + (
+                                "\nThe prior response was invalid. Produce a complete corrected JSON object "
+                                "from the original data. Check every constraint and any timing budget. "
+                                "Problem found: " + " ".join(str(problem).split())[:400]
+                            )},
+                            messages[1],
+                        ]
+                        try:
+                            raw = self._request(client, model, repair_messages, prompt.tokens, progress)
+                        except ModelError as exc:  # busy during the repair: another model may still work
+                            tried.add(model)
+                            if not (exc.try_next or exc.unavailable) or not [r for r in self._routes(base, self.chain(kind)) if r[1] not in tried]:
+                                raise
+                            progress(f"{model} is busy. Trying another model…")
+                            break

@@ -14,7 +14,10 @@ import { lessonHref, riskTone, useSummary } from "@/lib/career";
 import { useProfiles } from "@/lib/profile";
 import type { Dashboard } from "@/lib/types";
 
-const band = (v: number | null) => (v === null ? "Answer a few questions to get your first score." : v >= 7.5 ? "Strong. Keep your reviews up." : v >= 5 ? "Building nicely. Target the weak spots." : "Getting started. Every answer counts.");
+const band = (v: number | null, assessed = 0, total = 1) =>
+  v === null ? "Answer a few questions to get your first score."
+  : assessed < Math.min(5, total) ? `Early signal from ${assessed} topic${assessed === 1 ? "" : "s"}. Practise more for a reliable score.`
+  : v >= 7.5 ? "Strong. Keep your reviews up." : v >= 5 ? "Building nicely. Target the weak spots." : "Getting started. Every answer counts.";
 
 export default function Home() {
   const { active, loading } = useProfiles();
@@ -54,7 +57,7 @@ export default function Home() {
           <Card className="flex flex-col items-center gap-3 md:px-10">
             <p className="text-sm font-medium text-muted">Overall readiness</p>
             <ReadinessRing value={career?.readiness.overall ?? null} max={10} />
-            <p className="max-w-52 text-center text-sm text-muted">{band(career?.readiness.overall ?? null)}</p>
+            <p className="max-w-52 text-center text-sm text-muted">{band(career?.readiness.overall ?? null, career?.readiness.assessed, career?.readiness.total)}</p>
             {career && <p className="text-xs text-muted">{career.readiness.assessed} of {career.readiness.total} topics assessed · scored 1 to 10</p>}
           </Card>
           <div className="grid content-start gap-4 sm:grid-cols-3">

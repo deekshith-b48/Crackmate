@@ -74,6 +74,31 @@ class ProviderErrorTests(unittest.TestCase):
             self.service.settings = Settings(api_key="g", fast_model="")
             self.assertEqual(len(self.service._routes(object(), ["m"])), 1)
 
+    def test_unusable_answer_moves_on_to_the_next_model(self):
+        self.call.side_effect = [completion("not json"), completion("still not json"), completion("{}")]
+        _, model = self.generate()
+        self.assertEqual(model, "test-fallback")
+        self.assertEqual(self.call.call_count, 3)  # first model, its one repair, then the next model
+
+    def test_rate_limit_during_repair_moves_on_to_the_next_model(self):
+        self.call.side_effect = [completion("not json")] + [status(429, headers={"retry-after": "30"})] + [completion("{}")]
+        _, model = self.generate()
+        self.assertEqual(model, "test-fallback")
+
+    def test_cut_off_answer_is_retried_with_a_larger_limit(self):
+        cut = completion("")
+        cut.choices[0].finish_reason = "length"
+        self.call.side_effect = [cut, completion("{}")]
+        _, model = self.generate()
+        limits = [c.kwargs["max_completion_tokens"] for c in self.call.call_args_list]
+        self.assertGreater(limits[1], limits[0])
+
+    def test_items_from_the_backup_provider_count_as_current(self):
+        from core.material import HOST, Material
+        from types import SimpleNamespace
+        model = ModelService(Settings(api_key="g", model="a", alt_model="backup-m"))
+        self.assertEqual(Material.models(SimpleNamespace(model=model)), ["a", "backup-m", HOST])
+
     def test_stream_yields_chunks_and_never_raises(self):
         chunk = lambda t: type("E", (), {"choices": [type("C", (), {"delta": type("D", (), {"content": t})()})()]})()
         self.call.return_value = iter([chunk("Hel"), chunk("lo")])

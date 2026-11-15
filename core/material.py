@@ -181,7 +181,8 @@ class Material:
 
     def models(self):
         settings = self.model.settings
-        return [m for m in dict.fromkeys((settings.model, settings.fallback_model)) if m] + [HOST]
+        names = (settings.model, settings.fallback_model, settings.alt_model)
+        return [m for m in dict.fromkeys(names) if m and isinstance(m, str)] + [HOST]
 
     def shared_body(self, request, evidence=None):
         """Saved shared lesson text for this skill request, or None."""
