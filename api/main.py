@@ -1,5 +1,6 @@
 """CrackMate API. Run: .venv/bin/python -m uvicorn api.main:app --host 127.0.0.1 --port 8000"""
 from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -25,7 +26,7 @@ def create_app(core=None, *, extra_hosts=(), serve_web=True):
     app = FastAPI(title="CrackMate", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
     if core is not None:
         app.state.core = wire(core)  # tests that skip the lifespan still work
-    security.install(app, extra_hosts=extra_hosts)
+    security.install(app, ports=(int(os.environ.get("CRACKMATE_PORT", 8000)), 3000), extra_hosts=extra_hosts)  # set CRACKMATE_PORT if 8000 is taken
 
     @app.exception_handler(Exception)
     async def friendly(_: Request, exc: Exception):
