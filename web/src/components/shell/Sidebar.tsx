@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { api, API_BASE } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { NAV } from "@/lib/nav";
-import { Moon, Sun, X } from "lucide-react";
+import { Moon, Plus, Sun, X } from "lucide-react";
 import { useProfiles, type Status } from "@/lib/profile";
 import { useTheme } from "@/lib/theme";
 
@@ -40,6 +40,11 @@ export function Sidebar({ open = false, onClose = () => {} }: { open?: boolean; 
             <option key={p.id} value={p.id}>{p.name || p.role || "Profile"} · {p.id.slice(0, 6)}</option>
           ))}
         </select>
+        {profiles.length > 0 && (
+          <a href="/setup/?tab=new" className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-[var(--radius-control)] border border-dashed border-brand-500/60 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50">
+            <Plus className="size-4" aria-hidden /> Add another resume
+          </a>
+        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Main">

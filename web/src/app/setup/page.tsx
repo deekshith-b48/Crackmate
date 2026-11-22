@@ -1,6 +1,6 @@
 "use client";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { DangerZone } from "@/components/setup/DangerZone";
 import { ProfileForm } from "@/components/setup/ProfileForm";
@@ -10,6 +10,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toast";
 import { useProfiles } from "@/lib/profile";
 import { useProfile } from "@/lib/queries";
+import { useQueryParam } from "@/lib/useQueryParam";
 
 type Tab = "profile" | "projects" | "new" | "delete";
 
@@ -18,6 +19,8 @@ export default function Setup() {
   const { data: record } = useProfile(active?.id);
   const [tab, setTab] = useState<Tab>("profile");
   const toast = useToast();
+  const wanted = useQueryParam("tab");
+  useEffect(() => { if (wanted === "new") setTab("new"); }, [wanted]); // the sidebar button opens "Add another resume" directly
 
   const created = (id: string) => {
     setActive(id);
